@@ -1,0 +1,55 @@
+Description: > 
+  udacity 2020 - Jenkins on AWS project
+  Permissions to EC2 / S3 / CloudFormation
+
+Parameters:
+  JenkinsPipeline:
+    Description: "An environment name to tag resources"
+    ConstraintDescriptoin: "Please try to use an environment from the list"
+    Type: "String"
+    AllowedValues:
+      - "Development"
+      - "Preview"
+      - "Production"
+
+Resources:
+
+  JenkinsSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties: 
+      Description: "Secret for Jenkins User"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "jenkins"}'
+        GenerateStringKey: password
+        ExcludeLowercase: False
+        ExclueUppercase: False
+        RequireEachIncludedType: True
+        PasswordLength: 20
+        ExcludeCharacters: '<>%`|;,."'
+
+  Group:
+    Type: "AWS::IAM::Group"
+    Properties:
+      GroupName: jenkins
+      Path: /
+      Policies:
+        - PolicyName: String
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "ec2:*"
+                  - "s3:*"
+                  - "cloudFormation:*"
+                  - "secretmanager:*"
+                Resouce: "*"
+  
+  JenkinsUser:
+    Type: "AWS::IAM::User"
+    Properties:
+      Groups:
+        - jenkins
+      LoginProfile:
+        Password: !Join ['', ['{{resolve:secretsmanager:', !Ref JenkinsSecret, ':SecretString:password}}' ]]
+      UserName: !Join ['', ['{{resolve:secretsmanager:', !Ref JenkinsSecret, ':SecretString:username}}' ]]  
